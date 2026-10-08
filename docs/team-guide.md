@@ -43,7 +43,11 @@ git commit -m "feat(threads): timer_sleep busy-wait 제거"
 git push -u origin feat/alarm-clock
 
 # ⑤ GitHub에서 PR 생성: feat/alarm-clock → dev   (base 가 main 아닌지 꼭 확인!)
+# ⑥ 팀원 1명 Approve → 초록 [Merge pull request] 버튼 클릭   ← 이때 dev 에 들어감
+# ⑦ 브랜치 삭제 (7번 참고) → 다음 작업은 다시 ①부터
 ```
+
+> dev 에 직접 `git push origin dev` 는 **막혀 있음**. 항상 내 브랜치를 push 하고 PR 로 합친다.
 
 PR 올리기 전 체크:
 - [ ] Docker 컨테이너에서 빌드 성공 (`make` in `pintos/threads`)
@@ -111,8 +115,18 @@ git push -u origin merge/donation-into-dev
 - `git add .` 로 빌드 산출물(`build/`) 같이 올리기
 - 오래된 브랜치 붙잡고 있기 → 하루 1번은 `git pull origin dev`
 
-## 7. PR 리뷰
+## 7. PR 리뷰 · 머지 · 브랜치 삭제
 
-- PR엔 최소 1명 승인 받고 머지
+- PR엔 최소 1명 승인 받아야 머지 버튼 활성화 (내 PR은 내가 승인 못 함)
 - 리뷰할 때: "왜 이렇게 했어?" 질문 환영 — 정글은 설명할 수 있어야 내 것
-- 머지 후 내 브랜치 삭제 (GitHub 버튼) → 다음 작업은 다시 2번부터
+- 머지 버튼은 **Create a merge commit** 하나뿐 (팀 설정)
+
+머지 후 브랜치 삭제 (자동 삭제 꺼둠 → 직접 연습):
+
+```bash
+git switch dev
+git pull                                   # 머지된 최신 dev 받기
+git branch -d feat/alarm-clock             # 내 PC 브랜치 삭제 (-d: 머지 안 됐으면 거부 → 안전)
+git push origin --delete feat/alarm-clock  # GitHub 브랜치 삭제 (PR 화면 Delete branch 버튼과 같음)
+git fetch --prune                          # 이미 지워진 원격 브랜치 목록 정리
+```

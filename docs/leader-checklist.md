@@ -2,7 +2,7 @@
 
 > 팀원 공지 전에 레포 상태를 먼저 깨끗하게 만드는 게 핵심.
 
-## ⚠️ 0. 먼저 해결: 지금 630개 파일이 "수정됨"으로 뜨는 문제
+## ✅ 0. (완료) 먼저 해결: 지금 630개 파일이 "수정됨"으로 뜨는 문제
 
 원인: 내용 변경 0줄, **파일 권한만 바뀜** (`100755 → 100644`). Windows 체크아웃에서 생기는 현상.
 
@@ -27,7 +27,7 @@ git commit -m "chore: LF 줄바꿈 고정"
 git push origin main
 ```
 
-## 1. dev 브랜치 생성
+## ✅ 1. (완료) dev 브랜치 생성
 
 ```bash
 git switch main
@@ -41,23 +41,25 @@ git push -u origin dev
 | 위치 | 설정 |
 |---|---|
 | Collaborators | 팀원 초대 (Write 권한) |
-| Branches → Default branch | `dev` 로 변경 → PR 기본 base 가 dev 가 됨 (main 실수 방지) |
-| Rules → Rulesets (main, dev) | Require a pull request before merging ✅ / Required approvals: 1 ✅ / Block force pushes ✅ |
-| General → Pull Requests | "Automatically delete head branches" ✅ |
+| General → Default branch | `dev` 로 변경 → clone 시 dev에서 시작, PR 기본 대상도 dev |
+| General → Pull Requests | **Allow merge commits 만 체크** (squash·rebase 해제) / "Automatically delete head branches" **해제** (브랜치 삭제는 직접 연습) |
+| Rules → Rulesets (main, dev) | Restrict deletions ✅ / Require a pull request (approvals: 1) ✅ / Block force pushes ✅ / Bypass list 비움 |
 
-## 3. 머지 정책 결정 (팀원 공지 전에 정해두기)
+## 3. 머지 정책
 
-| 방향 | 방식 | 이유 |
-|---|---|---|
-| feat → dev | **Squash and merge** | dev 히스토리 = 기능 1개당 커밋 1개 → 깔끔 |
-| dev → main | **Create a merge commit** | 주차 마일스톤 기록용 (예: "Project 1 완료") |
+- **모든 PR은 `Create a merge commit` 하나로 통일** (Settings에서 이 버튼만 남겨둠)
+- 머지 = GitHub PR 화면의 초록 버튼. dev 에 직접 push 는 룰 때문에 막혀 있음
+- 흐름: 내 브랜치 push → PR → 팀원 1명 Approve → Merge 버튼 → 브랜치 삭제
 
-## 4. 작업 분배 팁 (충돌 줄이기)
+## 4. 작업 분배 — 🔜 TODO (코드 파악 후 결정)
 
-Pintos는 `thread.c`, `synch.c` 에 다 몰려서 충돌이 잦음.
+- [ ] Pintos 코드 읽고 기능별로 어떤 파일/함수를 건드리는지 파악
+- [ ] 분업 방식 결정 (기능별 분업 + 리뷰 / 각자 전부 구현 후 베스트 머지)
+- [ ] 결정되면 공지 템플릿 5번 채우기
 
-- 기능별로 **건드리는 함수를 미리 나눠서** 공지 (예: A=timer_sleep/wakeup, B=ready_list 정렬, C=donation)
-- `struct thread` 필드 추가는 **한 명이 먼저 PR** → 머지 후 다들 pull 하고 시작
+참고 메모:
+- Pintos는 `thread.c`, `synch.c` 에 작업이 몰려서 충돌이 잦음
+- `struct thread` 필드 추가는 한 명이 먼저 PR → 머지 후 다들 pull 하고 시작하면 충돌 절반 감소
 - 의존성 있는 기능(priority → donation)은 순서대로 머지
 
 ## 5. 충돌 해결 브랜치 운영 (구상한 방식 정리)
@@ -76,7 +78,7 @@ dev ──●────────●──────────●──�
 
 ```bash
 # dev 에서 전체 make check 통과 확인 후
-# GitHub에서 PR: dev → main  (merge commit)
+# GitHub에서 PR: dev → main → Merge
 git switch main && git pull
 git tag project1-threads
 git push origin project1-threads
@@ -92,5 +94,6 @@ git push origin project1-threads
    git config core.filemode false
    git config core.autocrlf input
 4. main/dev 직접 push 금지 → 브랜치 파서 dev로 PR
-5. 이번 주 담당: A=___ / B=___ / C=___
+5. PR은 팀원 1명 Approve 후 Merge, 머지 후 브랜치는 직접 삭제
+6. 이번 주 담당: (TODO)
 ```
