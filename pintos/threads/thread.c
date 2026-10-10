@@ -28,6 +28,9 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* 잠든(THREAD_BLOCKED) 스레드 목록. 깨어날 시각이 되면 꺼내서 깨운다. */
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -62,6 +65,9 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
+
+/* 우선 순위 비교 함수 */
+static bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -108,8 +114,10 @@ thread_init (void) {
 	/* Init the globla thread context */
 	lock_init (&tid_lock);
 	list_init (&ready_list);
+	list_init (&sleep_list);
 	list_init (&destruction_req);
 
+	
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -210,6 +218,40 @@ thread_create (const char *name, int priority,
 	return tid;
 }
 
+/* 현재 스레드를 wakeup_tick까지 재움
+   깨어날 시각을 저장하고 sleep_list 맨 뒤에 넣은 뒤 Blocked 상태로 만들고, 꺠우는 일은 타이머 인터럽트가 맡음
+   인터럽트를 끈 상태에서 처리하며, timer_sleep에서 호출함*/
+void
+thread_sleep (int64_t wakeup_tick) {
+	struct thread *cur = thread_current ();				//현재 스레드 가져오기
+	enum intr_level old_level = intr_disable ();		//인터럽트 끄기(이전상태 저장)
+
+	cur->wakeup_tick = wakeup_tick;						//깨어날 시각 저장
+	list_push_back (&sleep_list, &cur->elem);			//cur -> elem을 sleep_list 맨 뒤에 넣기
+	thread_block ();									//재우기(Running -> Blocked)
+
+	intr_set_level (old_level);							//인터럽트 복구
+}
+
+/* sleep_list를 처음부터 끝까지 확인해서, 깨어날 시각(wakeup_tick)이
+   NOW 이하인 스레드를 리스트에서 빼고 Ready 상태로 되돌린다.
+   타이머 인터럽트(timer_interrupt)에서 매 tick마다 호출한다. */
+void
+thread_wakeup (int64_t now) {
+	struct list_elem *e = list_begin (&sleep_list);           //리스트 첫 원소부터 시작
+
+	while (e != list_end (&sleep_list)) {
+		struct thread *t = list_entry (e, struct thread, elem);  //elem으로 스레드 찾기
+
+		if (t->wakeup_tick <= now) {                           //깨어날 시각이 됐으면
+			e = list_remove (e);                                //리스트에서 빼고, 다음 원소로 이동
+			thread_unblock (t);                                 //깨우기(Blocked -> Ready)
+		} else {
+			e = list_next (e);                                  //아직이면 다음 원소로
+		}
+	}
+}
+
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
 
@@ -240,7 +282,7 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_insert_ordered (&ready_list, &t->elem, cmp_priority, NULL);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -303,10 +345,18 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+	list_insert_ordered (&ready_list, &curr->elem, cmp_priority, NULL);
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
+
+/* 우선 순위 비교 함수 */
+static bool
+cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	return list_entry (a, struct thread, elem)->priority
+	     > list_entry (b, struct thread, elem)->priority;
+}
+
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void

@@ -90,11 +90,12 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
-	int64_t start = timer_ticks ();
-
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+
+	if (ticks <= 0)                              //잘 시간이 없으면 바로 반환
+		return;
+
+	thread_sleep (timer_ticks () + ticks);       //깨어날 시각을 계산해서 재우기
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -126,6 +127,7 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+	thread_wakeup (ticks);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
@@ -184,3 +186,9 @@ real_time_sleep (int64_t num, int32_t denom) {
 		busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000));
 	}
 }
+
+/* 실패 1
+   alarm-priority fail
+   이유: ready_list에 아직 도착 순서대로 넣고 있어 깨어난 스레드들이 우선순위 순으로 실행되지 않고 있음
+   해결방법: 우선순위 비교 함수 추가 및 list_push_back을 우선순위 순으로 교체  
+   */
