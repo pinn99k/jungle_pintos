@@ -7,6 +7,7 @@
 #include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+//include 에 있는 헤더파일 가져오는거임
 
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -90,6 +91,9 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
+	if(ticks <= 0){
+		return;
+	}
 	int64_t start = timer_ticks ();
 
 	ASSERT (intr_get_level () == INTR_ON);
