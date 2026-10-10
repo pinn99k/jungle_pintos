@@ -24,6 +24,7 @@ static int64_t ticks;
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
 
+static struct list sleep_list; // 자는 스레드 보관
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
@@ -41,6 +42,8 @@ timer_init (void) {
 	outb (0x43, 0x34);    /* CW: counter 0, LSB then MSB, mode 2, binary. */
 	outb (0x40, count & 0xff);
 	outb (0x40, count >> 8);
+
+	list_init (&sleep_list); // sleep 리스트 삽입
 
 	intr_register_ext (0x20, timer_interrupt, "8254 Timer");
 }
@@ -90,11 +93,16 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
-	int64_t start = timer_ticks ();
+	if(ticks <= 0){return;}
+	enum intr_level old_level;
+	struct thread *cur = thread_current(); // 현재 스레드 가져오기
 
-	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+	cur->wake_tick = timer_ticks() + ticks;
+
+	old_level = intr_disable(); // 스레드 끄기
+	list_push_back(&sleep_list, &cur->elem);
+	thread_block();
+	intr_set_level(old_level);
 }
 
 /* Suspends execution for approximately MS milliseconds. */
