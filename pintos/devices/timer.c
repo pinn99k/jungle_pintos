@@ -134,6 +134,22 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+
+	// 알람 구현 
+	// 리스트에서 찾아서 빼고 unblock
+	struct list_elem *e = list_begin(&sleep_list);
+	while (e != list_end(&sleep_list))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+
+		if (t->wake_tick <= ticks){
+			e = list_remove(e);
+			thread_unblock(t);
+		}
+		else{
+			e = list_next(e);
+		}
+	}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
