@@ -1,6 +1,8 @@
 /* Tests that cond_signal() wakes up the highest-priority thread
    waiting in cond_wait(). */
 
+   //스케줄링  테스트
+
 #include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
