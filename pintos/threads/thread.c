@@ -347,9 +347,6 @@ thread_get_recent_cpu (void) {
 	return 0;
 }
 
-// B파트에서 구현해야 함
-bool cmp_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
-
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
