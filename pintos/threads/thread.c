@@ -177,7 +177,7 @@ thread_print_stats (void) {
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. */
 tid_t
-thread_create (const char *name, int priority,
+  thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
 	struct thread *t;
 	tid_t tid;
@@ -207,6 +207,7 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	printf ("[create] %s tid=%d priority=%d\n", name, tid, priority);  //따로 수정 안했을때는 idle,tid=2, priority = 0
 	return tid;
 }
 
