@@ -347,6 +347,9 @@ thread_get_recent_cpu (void) {
 	return 0;
 }
 
+// B파트에서 구현해야 함
+bool cmp_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
@@ -409,6 +412,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+	t->base_priority = priority;
+	list_init(&t->donations);
+	t->wait_on_lock = NULL;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

@@ -108,6 +108,21 @@ struct thread {
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */
+
+	int base_priority;          // donation 전 원래 priority
+                                // → lock_release 때 원래 priority로 돌아가야 하니까
+
+	struct list donations;      // 나에게 donation해준 스레드들의 리스트
+                                // → lock을 여러 개 잡고 있을 때, 하나를 release하면
+                                //   남은 donation 중 max를 찾아야 하니까
+
+	struct list_elem donation_elem; // 상대방의 donations 리스트에 매달리는 고리
+                                	// → elem은 ready_list/waiters에서 이미 쓰고 있어서
+                                	//   donations용 고리가 별도로 필요
+
+	struct lock *wait_on_lock;  // 내가 기다리고 있는 lock (없으면 NULL)
+                                // → nested donation에서 chain을 따라가려면
+                                //   "이 스레드가 어떤 lock을 기다리는지" 알아야 하니까
 };
 
 /* If false (default), use round-robin scheduler.
