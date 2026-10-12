@@ -207,7 +207,7 @@ tid_t
 	/* Add to run queue. */
 	thread_unblock (t);
 
-	printf ("[create] %s tid=%d priority=%d\n", name, tid, priority);  //따로 수정 안했을때는 idle,tid=2, priority = 0
+	printf ("[create] %s tid=%d priority=%d\n", name, tid, priority);  //따로 수정 안했을때는 thread2 tid=3
 	return tid;
 }
 
@@ -241,7 +241,7 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_push_back (&ready_list, &t->elem); 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -296,11 +296,12 @@ thread_exit (void) {
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
 void
-thread_yield (void) {
+thread_yield (void) { //thread_yield 가 하는 역할 현재 cpu를 쓰는 스레드보다 우선순위가 높은 스레드가 생겼다 > 더 큰 스레드가 cpu를 쓰게해주는 역할
 	struct thread *curr = thread_current ();
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
+	if(curr->priority < list_max(&ready_list, NULL, NULL))
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
