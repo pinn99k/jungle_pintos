@@ -321,6 +321,3 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 	while (!list_empty (&cond->waiters))
 		cond_signal (cond, lock);
 }
-
-// B파트에서 구현해야 함
-bool cmp_sema_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
