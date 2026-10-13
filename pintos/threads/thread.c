@@ -410,6 +410,16 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
 }
+static bool compare_priority (const struct list_elem *a,    //우선순위 비교를 위한 함수 
+                             const struct list_elem *b,
+                             void *aux UNUSED){
+								const struct thread *t = list_entry(a, struct thread, elem);  //우선순위의 비교를 위한 포인터 변수 
+								const struct thread *y = list_entry(b, struct thread, elem);  
+
+								if(t->priority < y->priority){return true;}  
+								else {return false;}							/*t우선순위가 y우선순위보다 작을시 true 리턴 > true를 리턴 받은 list_max는  */
+							}
+
 
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
@@ -420,19 +430,15 @@ static struct thread *  	//MAX값으로 뽑아오되
 next_thread_to_run (void) {
 	if (list_empty (&ready_list))
 		return idle_thread;
-	else
-		return list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem);
+	else{
+		struct list_elem *max_list = list_max (&ready_list, compare_priority, NULL);   //list_max를 한번만 호출하게 설계
+		list_remove(max_list);  //가장 큰 우선순위를 리스트에서 뽑아오기 + 만약 list_remove에 list_max() 함수체로 호출하게 된다면,
+		return list_entry (max_list, struct thread, elem); // list_max()이 또 호출이 되고 여기서 리스트에서 이미 제일 큰값을 remove를 했기 때문에, 리스트에서 큰값을 또 찾고. 다른 값이 entry 하게 된다.
+															/*A(10) B(40) C(20) -> list_remove(list_max()) 리스트 제거에서 제일 큰 우선순위 제거. -> 현 리스트 상황 A(10)  C(20)
+																		return list_entry(list_max()) 리스트에서 또 찾음 -> 그러면 리스트 상황에서 가장 큰 C가 출력되게 되어서 max_list로 변수 지정하여 생성하게 된다						*/
+	}
 }  
 
-static bool compare_priority (const struct list_elem *a,
-                             const struct list_elem *b,
-                             void *aux UNUSED){
-								const struct thread *t = list_entry(a, struct thread, elem);  //큰값 받아오는 포인터 
-								const struct thread *y = list_entry(b, struct thread, elem);
-
-								if(t->priority < y->priority){return;}
-								else {return;}
-							}
 
 /* Use iretq to launch the thread */
 void
