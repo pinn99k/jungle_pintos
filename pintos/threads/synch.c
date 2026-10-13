@@ -110,7 +110,7 @@ sema_up (struct semaphore *sema) {
 
 	old_level = intr_disable ();
 	sema->value++;
-	
+
 	if (!list_empty (&sema->waiters)){ // 우선순위를 뽑도록 수정
 		struct list_elem *max_list = list_max (&sema->waiters, compare_priority, NULL);
 		list_remove(max_list);
