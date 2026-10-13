@@ -465,7 +465,7 @@ list_max (struct list *list, list_less_func *less, void *aux) {
 		struct list_elem *e;
 
 		for (e = list_next (max); e != list_end (list); e = list_next (e))
-			if (less (max, e, aux))
+			if (less (max, e, aux))    //여기서 비교함수에게 less 냐고(현재 우선순위가 더 작은지?)에 관해 묻고 > 이후 true 호출될시 작은거로 판별. false 호출 > 그냥 그대로 return max
 				max = e;
 	}
 	return max;
