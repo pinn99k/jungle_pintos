@@ -119,14 +119,14 @@ thread_init (void) {
 
 void
 thread_preempt(void){	
-	if (list_empty (&ready_list)){			//기다리는 스레드가 없을 경우 바로 종료
+	if (list_empty (&ready_list)){ //기다리는 스레드가 없을 경우 바로 종료
       return;
 	}
 
-	struct thread *max = list_entry(list_max (&ready_list, compare_priority, NULL), struct thread, elem)->priority;
+	struct thread *max = list_entry(list_max (&ready_list, compare_priority, NULL), struct thread, elem);
 	
 	if (max->priority > thread_current()->priority){
-		if(intr_context()){
+		if(intr_context()){ // 인터럽트 주의
 			intr_yield_on_return();
 		}
 		else{
@@ -442,8 +442,7 @@ compare_priority (const struct list_elem *a, //우선순위 비교를 위한 함
 	const struct thread *t1 = list_entry(a, struct thread, elem); //우선순위의 비교를 위한 포인터 변수 
 	const struct thread *t2 = list_entry(b, struct thread, elem);  
 
-	if(t1->priority < t2->priority){return true;}  
-	else {return false;} /*t우선순위가 y우선순위보다 작을시 true 리턴 > true를 리턴 받은 list_max는  */
+	return t1->priority < t2->priority;
 }
 
 
