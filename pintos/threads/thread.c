@@ -62,6 +62,7 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
+static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -177,7 +178,7 @@ thread_print_stats (void) {
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. */
 tid_t
-thread_create (const char *name, int priority,
+  thread_create (const char *name, int priority,
 		thread_func *function, void *aux) {
 	struct thread *t;
 	tid_t tid;
@@ -207,6 +208,11 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	/* 새 스레드가 지금 스레드보다 우선순위가 높으면 바로 CPU를 양보한다.
+	   (우선순위가 같으면 양보하지 않고 들어온 순서를 따른다.) */
+	if (t -> priority > thread_current() -> priority){
+		thread_yield ();
+	}
 	return tid;
 }
 
@@ -240,7 +246,7 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_push_back (&ready_list, &t->elem); 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -295,12 +301,12 @@ thread_exit (void) {
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
 void
-thread_yield (void) {
+thread_yield (void) { //thread_yield 가 하는 역할 현재 cpu를 쓰는 스레드보다 우선순위가 높은 스레드가 생겼다 > 더 큰 스레드가 cpu를 쓰게해주는 역할
 	struct thread *curr = thread_current ();
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
-
+	
 	old_level = intr_disable ();
 	if (curr != idle_thread)
 		list_push_back (&ready_list, &curr->elem);
@@ -312,6 +318,14 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	if (list_empty (&ready_list)){			//기다리는 스레드가 없을 경우 바로 종료
+      return;
+	}
+	/* ready_list가 아직 정렬돼 있지 않아서 list_max로 가장 높은 스레드를 찾음
+		우선순위가 같을 경우 양보하지 않음*/
+	if (list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem)->priority > new_priority){
+	thread_yield ();
+	}
 }
 
 /* Returns the current thread's priority. */
@@ -410,19 +424,35 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
 }
+static bool compare_priority (const struct list_elem *a,    //우선순위 비교를 위한 함수 
+                             const struct list_elem *b,
+                             void *aux UNUSED){
+								const struct thread *t = list_entry(a, struct thread, elem);  //우선순위의 비교를 위한 포인터 변수 
+								const struct thread *y = list_entry(b, struct thread, elem);  
+
+								if(t->priority < y->priority){return true;}  
+								else {return false;}							/*t우선순위가 y우선순위보다 작을시 true 리턴 > true를 리턴 받은 list_max는  */
+							}
+
 
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
-static struct thread *
+static struct thread *  	//MAX값으로 뽑아오되
 next_thread_to_run (void) {
 	if (list_empty (&ready_list))
 		return idle_thread;
-	else
-		return list_entry (list_pop_front (&ready_list), struct thread, elem);
-}
+	else{
+		struct list_elem *max_list = list_max (&ready_list, compare_priority, NULL);   //list_max를 한번만 호출하게 설계
+		list_remove(max_list);  //가장 큰 우선순위를 리스트에서 뽑아오기 + 만약 list_remove에 list_max() 함수체로 호출하게 된다면,
+		return list_entry (max_list, struct thread, elem); // list_max()이 또 호출이 되고 여기서 리스트에서 이미 제일 큰값을 remove를 했기 때문에, 리스트에서 큰값을 또 찾고. 다른 값이 entry 하게 된다.
+															/*A(10) B(40) C(20) -> list_remove(list_max()) 리스트 제거에서 제일 큰 우선순위 제거. -> 현 리스트 상황 A(10)  C(20)
+																		return list_entry(list_max()) 리스트에서 또 찾음 -> 그러면 리스트 상황에서 가장 큰 C가 출력되게 되어서 max_list로 변수 지정하여 생성하게 된다						*/
+	}
+}  
+
 
 /* Use iretq to launch the thread */
 void
