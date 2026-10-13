@@ -207,7 +207,7 @@ tid_t
 	/* Add to run queue. */
 	thread_unblock (t);
 
-	printf ("[create] %s tid=%d priority=%d\n", name, tid, priority);  //따로 수정 안했을때는 thread2 tid=3
+	//printf ("[create] %s tid=%d priority=%d\n", name, tid, priority);  //따로 수정 안했을때는 thread2 tid=3
 	return tid;
 }
 
@@ -301,8 +301,7 @@ thread_yield (void) { //thread_yield 가 하는 역할 현재 cpu를 쓰는 스�
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
-	if(curr->priority < list_max(&ready_list, NULL, NULL))
-
+	
 	old_level = intr_disable ();
 	if (curr != idle_thread)
 		list_push_back (&ready_list, &curr->elem);
@@ -418,13 +417,22 @@ init_thread (struct thread *t, const char *name, int priority) {
    empty.  (If the running thread can continue running, then it
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
-static struct thread *
+static struct thread *  	//MAX값으로 뽑아오되
 next_thread_to_run (void) {
 	if (list_empty (&ready_list))
 		return idle_thread;
 	else
-		return list_entry (list_pop_front (&ready_list), struct thread, elem);
-}
+		return list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem);
+}  
+static bool compare_priority (const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux UNUSED){
+								const struct thread *t = list_entry(a, struct thread, elem);  //값을 받아오는 포인터 
+								const struct thread *y = list_entry(b, struct thread, elem);
+
+								if(t->priority < y->priority){return;}
+								else {return;}
+							}
 
 /* Use iretq to launch the thread */
 void
