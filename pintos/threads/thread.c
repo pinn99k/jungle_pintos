@@ -324,7 +324,7 @@ thread_set_priority (int new_priority) {
 	/* ready_list가 아직 정렬돼 있지 않아서 list_max로 가장 높은 스레드를 찾음
 		우선순위가 같을 경우 양보하지 않음*/
 	if (list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem)->priority > new_priority){
-	thread_yield ();
+		thread_yield ();
 	}
 }
 
@@ -424,15 +424,16 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
 }
-static bool compare_priority (const struct list_elem *a,    //우선순위 비교를 위한 함수 
-                             const struct list_elem *b,
-                             void *aux UNUSED){
-								const struct thread *t = list_entry(a, struct thread, elem);  //우선순위의 비교를 위한 포인터 변수 
-								const struct thread *y = list_entry(b, struct thread, elem);  
 
-								if(t->priority < y->priority){return true;}  
-								else {return false;}							/*t우선순위가 y우선순위보다 작을시 true 리턴 > true를 리턴 받은 list_max는  */
-							}
+bool
+compare_priority (const struct list_elem *a, //우선순위 비교를 위한 함수 
+    const struct list_elem *b, void *aux UNUSED){
+	const struct thread *t1 = list_entry(a, struct thread, elem); //우선순위의 비교를 위한 포인터 변수 
+	const struct thread *t2 = list_entry(b, struct thread, elem);  
+
+	if(t1->priority < t2->priority){return true;}  
+	else {return false;} /*t우선순위가 y우선순위보다 작을시 true 리턴 > true를 리턴 받은 list_max는  */
+}
 
 
 /* Chooses and returns the next thread to be scheduled.  Should
