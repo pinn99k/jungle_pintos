@@ -209,9 +209,9 @@ thread_create (const char *name, int priority,
 
 	/* 새 스레드가 지금 스레드보다 우선순위가 높으면 바로 CPU를 양보한다.
 	   (우선순위가 같으면 양보하지 않고 들어온 순서를 따른다.) */
-	if (t -> priority > thread_current() -> priority)
+	if (t -> priority > thread_current() -> priority){
 		thread_yield ();
-
+	}
 	return tid;
 }
 
@@ -317,6 +317,14 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	if (list_empty (&ready_list)){			//기다리는 스레드가 없을 경우 바로 종료
+      return;
+	}
+	/* ready_list가 아직 정렬돼 있지 않아서 list_max로 가장 높은 스레드를 찾음
+		우선순위가 같을 경우 양보하지 않음*/
+	if (list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem)->priority > new_priority){
+	thread_yield ();
+	}
 }
 
 /* Returns the current thread's priority. */
