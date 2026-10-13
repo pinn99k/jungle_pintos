@@ -207,7 +207,6 @@ tid_t
 	/* Add to run queue. */
 	thread_unblock (t);
 
-	//printf ("[create] %s tid=%d priority=%d\n", name, tid, priority);  //따로 수정 안했을때는 thread2 tid=3
 	return tid;
 }
 
@@ -424,10 +423,11 @@ next_thread_to_run (void) {
 	else
 		return list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem);
 }  
+
 static bool compare_priority (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux UNUSED){
-								const struct thread *t = list_entry(a, struct thread, elem);  //값을 받아오는 포인터 
+								const struct thread *t = list_entry(a, struct thread, elem);  //큰값 받아오는 포인터 
 								const struct thread *y = list_entry(b, struct thread, elem);
 
 								if(t->priority < y->priority){return;}
