@@ -62,7 +62,6 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
-static bool compare_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -118,6 +117,23 @@ thread_init (void) {
 	initial_thread->tid = allocate_tid ();
 }
 
+void
+thread_preempt(void){	
+	if (list_empty (&ready_list)){			//기다리는 스레드가 없을 경우 바로 종료
+      return;
+	}
+
+	struct thread *max = list_entry(list_max (&ready_list, compare_priority, NULL), struct thread, elem)->priority;
+	
+	if (max->priority > thread_current()->priority){
+		if(intr_context()){
+			intr_yield_on_return();
+		}
+		else{
+			thread_yield();
+		}
+	}
+}
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
 void
@@ -318,14 +334,9 @@ thread_yield (void) { //thread_yield 가 하는 역할 현재 cpu를 쓰는 스�
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
-	if (list_empty (&ready_list)){			//기다리는 스레드가 없을 경우 바로 종료
-      return;
-	}
 	/* ready_list가 아직 정렬돼 있지 않아서 list_max로 가장 높은 스레드를 찾음
 		우선순위가 같을 경우 양보하지 않음*/
-	if (list_entry (list_max (&ready_list, compare_priority, NULL), struct thread, elem)->priority > new_priority){
-		thread_yield ();
-	}
+	thread_preempt();
 }
 
 /* Returns the current thread's priority. */
