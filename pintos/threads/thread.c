@@ -207,6 +207,11 @@ thread_create (const char *name, int priority,
 	/* Add to run queue. */
 	thread_unblock (t);
 
+	/* 새 스레드가 지금 스레드보다 우선순위가 높으면 바로 CPU를 양보한다.
+	   (우선순위가 같으면 양보하지 않고 들어온 순서를 따른다.) */
+	if (t -> priority > thread_current() -> priority)
+		thread_yield ();
+
 	return tid;
 }
 
