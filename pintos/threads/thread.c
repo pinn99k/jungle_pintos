@@ -333,10 +333,29 @@ thread_yield (void) { //thread_yield 가 하는 역할 현재 cpu를 쓰는 스�
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	thread_current ()->base_priority = new_priority;
 	/* ready_list가 아직 정렬돼 있지 않아서 list_max로 가장 높은 스레드를 찾음
 		우선순위가 같을 경우 양보하지 않음*/
-	thread_preempt();
+
+	// ref : 유효 우선순위를 검사할지 비교하는 함수 작성
+
+	thread_preempt(); // 선점 체크
+}
+
+void
+thread_recompute_priority(struct thread *t){
+	t->priority = t->base_priority;
+
+	if(list_empty(&t->donation)){
+		return;
+	}
+
+	struct list_elem *max_list = list_max (&t->donation, compare_donation_priority, NULL);
+	struct thread *max = list_entry (max_list, struct thread, donation_elem);
+	
+	if(max->priority > t->priority){
+		t->priority = max->priority;
+	}
 }
 
 /* Returns the current thread's priority. */
@@ -433,6 +452,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	strlcpy (t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
+	t->base_priority = priority; // 베이스 우선순위
+	list_init(&t->donation); // donation 리스트 삽입
+	t->wait_lock = NULL; // lock 변수 초기화
+
 	t->magic = THREAD_MAGIC;
 }
 
@@ -441,6 +464,15 @@ compare_priority (const struct list_elem *a, //우선순위 비교를 위한 함
     const struct list_elem *b, void *aux UNUSED){
 	const struct thread *t1 = list_entry(a, struct thread, elem); //우선순위의 비교를 위한 포인터 변수 
 	const struct thread *t2 = list_entry(b, struct thread, elem);  
+
+	return t1->priority < t2->priority;
+}
+
+bool
+compare_donation_priority (const struct list_elem *a, //우선순위 비교를 위한 함수 
+    const struct list_elem *b, void *aux UNUSED){
+	const struct thread *t1 = list_entry(a, struct thread, donation_elem); //우선순위의 비교를 위한 포인터 변수 
+	const struct thread *t2 = list_entry(b, struct thread, donation_elem);  
 
 	return t1->priority < t2->priority;
 }
