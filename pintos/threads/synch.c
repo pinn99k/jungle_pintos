@@ -198,8 +198,12 @@ lock_acquire (struct lock *lock) { // 여기서 donation을 넣고 정렬
 	if(lock->holder != NULL){ // 홀더가 비어있지 않을때 우선순위 검사
 		thread_current()->wait_lock = lock;
 		list_push_back (&lock->holder->donation, &thread_current()->donation_elem);
-		thread_recompute_priority(lock->holder);
+		
+		while(true){ // ref 체인 문제 해결
+			thread_recompute_priority(lock->holder);
+		}
 	}
+
 	sema_down (&lock->semaphore);
 	lock->holder = thread_current (); 
 	lock->holder->wait_lock = NULL;
@@ -238,7 +242,7 @@ lock_release (struct lock *lock) { // 여기서 donation을 풀어줘야 함
 	ASSERT (lock_held_by_current_thread (lock));
 	
 	enum intr_level old_level = intr_disable (); // 인터럽트 처리
-	
+
 	struct list_elem *e = list_begin(&lock->holder->donation);
 
 	// 홀더가 들고있는 donation을 비워야 함
