@@ -188,13 +188,23 @@ lock_init (struct lock *lock) {
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
 void
-lock_acquire (struct lock *lock) {
+lock_acquire (struct lock *lock) { // 여기서 donation을 넣고 정렬
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
+	enum intr_level old_level = intr_disable (); // 인터럽트 처리
+
+	if(lock->holder != NULL){ // 홀더가 비어있지 않을때 우선순위 검사
+		thread_current()->wait_lock = lock;
+		list_push_back (&lock->holder->donation, &thread_current()->donation_elem);
+		thread_recompute_priority(lock->holder);
+	}
 	sema_down (&lock->semaphore);
 	lock->holder = thread_current (); 
+	lock->holder->wait_lock = NULL;
+
+	intr_set_level (old_level); // 인터럽트 처리
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -223,12 +233,33 @@ lock_try_acquire (struct lock *lock) {
    make sense to try to release a lock within an interrupt
    handler. */
 void
-lock_release (struct lock *lock) {
+lock_release (struct lock *lock) { // 여기서 donation을 풀어줘야 함
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
+	
+	enum intr_level old_level = intr_disable (); // 인터럽트 처리
+	
+	struct list_elem *e = list_begin(&lock->holder->donation);
+
+	// 홀더가 들고있는 donation을 비워야 함
+	while(e != list_end(&thread_current()->donation)){
+		struct thread *t = list_entry(e, struct thread, donation_elem);
+		
+		if(lock == t->wait_lock){ // lock이랑 돌고있는 wait랑 같은지 판단해서 다 꺼내기
+			e = list_remove(e);
+		}
+		else{
+			e = list_next(e);
+		}
+
+	}
+
+	thread_recompute_priority(thread_current());
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
+
+	intr_set_level (old_level); // 인터럽트 처리
 }
 
 /* Returns true if the current thread holds LOCK, false
