@@ -199,8 +199,14 @@ lock_acquire (struct lock *lock) { // 여기서 donation을 넣고 정렬
 		thread_current()->wait_lock = lock;
 		list_push_back (&lock->holder->donation, &thread_current()->donation_elem);
 		
-		while(true){ // ref 체인 문제 해결
-			thread_recompute_priority(lock->holder);
+		struct thread *cur = thread_current();
+		while(cur->wait_lock != NULL){ // ref 체인 문제 해결
+			struct thread *holder = cur->wait_lock->holder;
+			if(holder == NULL){ // 무조건 잡는게 아니라 혹시 몰라 넣어 둠
+				break;
+			}
+			thread_recompute_priority(holder);
+			cur = holder;
 		}
 	}
 
