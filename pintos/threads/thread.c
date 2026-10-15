@@ -338,6 +338,7 @@ thread_set_priority (int new_priority) {
 		우선순위가 같을 경우 양보하지 않음*/
 
 	// ref : 유효 우선순위를 검사할지 비교하는 함수 작성
+	thread_recompute_priority(thread_current());
 
 	thread_preempt(); // 선점 체크
 }
